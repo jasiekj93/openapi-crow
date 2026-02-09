@@ -24,8 +24,8 @@ namespace openapi::route
         void addInfo(crow::json::wvalue& spec) const;
         void addServers(crow::json::wvalue& spec) const;
         void addPaths(crow::json::wvalue& spec) const;
-        void addGetPath(crow::json::wvalue& pathItem, crow::json::wvalue& specification, const std::shared_ptr<Base>&) const;
-        void addPostPath(crow::json::wvalue& pathItem, crow::json::wvalue& specification, const std::shared_ptr<Base>&) const;
+        void addGetPath(crow::json::wvalue& specification, const std::shared_ptr<Base>&) const;
+        void addPostPath(crow::json::wvalue& specification, const std::shared_ptr<Base>&) const;
 
     private:
         Server& server;

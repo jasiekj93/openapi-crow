@@ -83,81 +83,83 @@ void OpenapiJson::addPaths(crow::json::wvalue& specification) const
            path == "/api-docs")
             continue; 
 
-        crow::json::wvalue pathItem;
         if(route->getMethod() == crow::HTTPMethod::GET)
-            addGetPath(pathItem, specification, route);
+            addGetPath(specification, route);
         else if(route->getMethod() == crow::HTTPMethod::POST)
-            addPostPath(pathItem, specification, route);
-
-        specification["paths"][path] = std::move(pathItem);
+            addPostPath(specification, route);
     }
 }
 
-void OpenapiJson::addGetPath(crow::json::wvalue& pathItem, 
-    crow::json::wvalue& specification, 
+void OpenapiJson::addGetPath(crow::json::wvalue& specification, 
     const std::shared_ptr<Base>& route) const
 {
     auto getRoute = dynamic_cast<Get*>(route.get());
 
-    if(getRoute)
+    if(not getRoute)
+        return;
+    
+    crow::json::wvalue pathItem;
+
+    auto operation = getRoute->getSpecification();
+    pathItem["get"]["summary"] = operation.summary;
+    pathItem["get"]["description"] = operation.description;
+    
+    if(operation.responses.has_value())
     {
-        auto operation = getRoute->getSpecification();
-        pathItem["get"]["summary"] = operation.summary;
-        pathItem["get"]["description"] = operation.description;
-        
-        if(operation.responses.has_value())
+        for(const auto& [code, description, contentSchema] : operation.responses.value())
         {
-            for(const auto& [code, description, contentSchema] : operation.responses.value())
+            pathItem["get"]["responses"][std::to_string(code)]["description"] = description;
+            
+            if(contentSchema.has_value())
             {
-                pathItem["get"]["responses"][std::to_string(code)]["description"] = description;
-                
-                if(contentSchema.has_value())
-                {
-                    pathItem["get"]["responses"][std::to_string(code)]["content"]["application/json"]["schema"]["$ref"] = "#/components/schemas/" + contentSchema.value();
-                    specification["components"]["schemas"][contentSchema.value()] = getRoute->getSchema(contentSchema.value());
-                }
+                pathItem["get"]["responses"][std::to_string(code)]["content"]["application/json"]["schema"]["$ref"] = "#/components/schemas/" + contentSchema.value();
+                specification["components"]["schemas"][contentSchema.value()] = std::move(getRoute->getSchema(contentSchema.value()));
             }
         }
     }
+
+    specification["paths"][route->getPath()] = std::move(pathItem);
 }
 
-void OpenapiJson::addPostPath(crow::json::wvalue& pathItem, 
-    crow::json::wvalue& specification, 
+void OpenapiJson::addPostPath(crow::json::wvalue& specification, 
     const std::shared_ptr<Base>& route) const
 {
     auto postRoute = dynamic_cast<Post*>(route.get());
 
-    if(postRoute)
-    {
-        auto operation = postRoute->getSpecification();
-        pathItem["post"]["summary"] = operation.summary;
-        pathItem["post"]["description"] = operation.description;
-        
-        if(operation.requestBody.has_value())
-        {
-            auto& requestBody = operation.requestBody.value();
-            pathItem["post"]["requestBody"]["required"] = requestBody.isRequired;
-            
-            if(requestBody.contentSchema.has_value())
-            {
-                auto schemaName = requestBody.contentSchema.value();
-                pathItem["post"]["requestBody"]["content"]["application/json"]["schema"]["$ref"] = "#/components/schemas/" + schemaName;
-                specification["components"]["schemas"][schemaName] = postRoute->getSchema(schemaName);
-            }
-        }
+    if(not postRoute)
+        return;
 
-        if(operation.responses.has_value())
+    crow::json::wvalue pathItem;
+    auto operation = postRoute->getSpecification();
+    pathItem["post"]["summary"] = operation.summary;
+    pathItem["post"]["description"] = operation.description;
+    
+    if(operation.requestBody.has_value())
+    {
+        auto& requestBody = operation.requestBody.value();
+        pathItem["post"]["requestBody"]["required"] = requestBody.isRequired;
+        
+        if(requestBody.contentSchema.has_value())
         {
-            for(const auto& [code, description, contentSchema] : operation.responses.value())
+            auto schemaName = requestBody.contentSchema.value();
+            pathItem["post"]["requestBody"]["content"]["application/json"]["schema"]["$ref"] = "#/components/schemas/" + schemaName;
+            specification["components"]["schemas"][schemaName] = std::move(postRoute->getSchema(schemaName));
+        }
+    }
+
+    if(operation.responses.has_value())
+    {
+        for(const auto& [code, description, contentSchema] : operation.responses.value())
+        {
+            pathItem["post"]["responses"][std::to_string(code)]["description"] = description;
+            
+            if(contentSchema.has_value())
             {
-                pathItem["post"]["responses"][std::to_string(code)]["description"] = description;
-                
-                if(contentSchema.has_value())
-                {
-                    pathItem["post"]["responses"][std::to_string(code)]["content"]["application/json"]["schema"]["$ref"] = "#/components/schemas/" + contentSchema.value();
-                    specification["components"]["schemas"][contentSchema.value()] = postRoute->getSchema(contentSchema.value());
-                }
+                pathItem["post"]["responses"][std::to_string(code)]["content"]["application/json"]["schema"]["$ref"] = "#/components/schemas/" + contentSchema.value();
+                specification["components"]["schemas"][contentSchema.value()] = std::move(postRoute->getSchema(contentSchema.value()));
             }
         }
     }
+
+    specification["paths"][route->getPath()] = std::move(pathItem);
 }
