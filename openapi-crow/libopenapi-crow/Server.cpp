@@ -24,6 +24,11 @@ void Server::addRoute(const std::shared_ptr<route::Base>& route)
         });
 }
 
+void Server::setDescription(const std::string_view description)
+{
+    this->description = description;
+}
+
 void Server::run()
 {
     std::cout << "Starting " << info.title << " server on port " << port << "..." << std::endl;
