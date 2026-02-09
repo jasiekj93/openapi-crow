@@ -1,0 +1,12 @@
+[submodule "make"]
+	path = make
+	url = https://github.com/jasiekj93/Stm32Make
+[submodule "external/CppUTest"]
+	path = external/CppUTest
+	url = https://github.com/jasiekj93/cpputest
+[submodule "external/crow"]
+	path = external/crow
+	url = https://github.com/CrowCpp/Crow
+[submodule "external/asio"]
+	path = external/asio
+	url = https://github.com/chriskohlhoff/asio
